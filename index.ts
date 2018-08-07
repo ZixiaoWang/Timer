@@ -1,38 +1,38 @@
 const WORKER = `
-self.addEventListener(
-    'message',
-    function(event){
-        var message = event.data.split(':');
-        var cmd = message[0];
-        var ID = message[1];
-        var delay = parseInt(message[2]);
+    self.addEventListener(
+        'message',
+        function(event){
+            var message = event.data.split(':');
+            var cmd = message[0];
+            var ID = message[1];
+            var delay = parseInt(message[2]);
 
-        switch(cmd) {
-            case 'calibrate':
-                self.postMessage('calibrate:' + ID);
-                break;
-            case 'createTimeout':
-                var $timeout = setTimeout(function(){
-                    self.postMessage('timeout:' + ID + ':' + $timeout);
-                }, delay);
-                self.postMessage('createTimeout:' + ID + ':' + $timeout);
-                break;
-            case 'createInterval':
-                var $interval = setInterval(function(){
-                    self.postMessage('interval:' + ID + ':' + $interval);
-                }, delay);
-                self.postMessage('createInterval:' + ID + ':' + $interval);
-                break;
-            case 'clearTimeout':
-                clearTimeout(ID);
-                break;
-            case 'clearInterval':
-                clearInterval(ID);
-                break;
-        }
-    },
-    false
-);
+            switch(cmd) {
+                case 'calibrate':
+                    self.postMessage('calibrate:' + ID);
+                    break;
+                case 'createTimeout':
+                    var $timeout = setTimeout(function(){
+                        self.postMessage('timeout:' + ID + ':' + $timeout);
+                    }, delay);
+                    self.postMessage('createTimeout:' + ID + ':' + $timeout);
+                    break;
+                case 'createInterval':
+                    var $interval = setInterval(function(){
+                        self.postMessage('interval:' + ID + ':' + $interval);
+                    }, delay);
+                    self.postMessage('createInterval:' + ID + ':' + $interval);
+                    break;
+                case 'clearTimeout':
+                    clearTimeout(ID);
+                    break;
+                case 'clearInterval':
+                    clearInterval(ID);
+                    break;
+            }
+        },
+        false
+    );
 `;
 
 interface TimerInfo {
@@ -43,7 +43,7 @@ interface TimerInfo {
     timer: number;
 }
 
-class CubeTimer {
+class Timer {
     private intervalMap: Map<string, TimerInfo>;
     private timeoutMap: Map<string, TimerInfo>;
     private worker: Worker;
@@ -134,8 +134,8 @@ class CubeTimer {
         })
     }
 
-    hasTimer(timerCode: string): boolean {
-        return (this.timeoutMap.has(timerCode) || this.intervalMap.has(timerCode));
+    hasTimer(tikcerID: string): boolean {
+        return (this.timeoutMap.has(tikcerID) || this.intervalMap.has(tikcerID));
     }
 
     private $setWorkerEventListener() {
