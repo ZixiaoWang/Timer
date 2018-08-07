@@ -1,0 +1,23 @@
+{
+  "name": "ticker",
+  "version": "1.0.0",
+  "description": "A javascript ticker which ticks well in inactive tabs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZixiaoWang/Ticker.git"
+  },
+  "keywords": [
+    "javascript",
+    "typescript"
+  ],
+  "author": "www.wangzixiao@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ZixiaoWang/Ticker/issues"
+  },
+  "homepage": "https://github.com/ZixiaoWang/Ticker#readme"
+}
