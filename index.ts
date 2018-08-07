@@ -35,7 +35,7 @@ const WORKER = `
     );
 `;
 
-interface TimerInfo {
+export interface TimerInfo {
     fn: Function | string;
     delay: number;
     params: any[];
@@ -43,7 +43,7 @@ interface TimerInfo {
     timer: number;
 }
 
-class Timer {
+export class Timer {
     private intervalMap: Map<string, TimerInfo>;
     private timeoutMap: Map<string, TimerInfo>;
     private worker: Worker;

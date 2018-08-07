@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+      "target": "es5",                          
+      "module": "system",                     
+      "lib": [
+        "dom",
+        "es5",
+        "es6",
+        "es2015",
+        "es2016",
+        "esnext"
+      ],                             
+      "declaration": true,                   
+      "outFile": "./index.js",                       
+      "outDir": "./",                        
+      "rootDir": "./",                       
+      "strict": true                            
+    },
+    "include": [
+      "**/*.ts"
+    ],
+    "exclude": [
+      "node_modules"
+    ]
+  }
