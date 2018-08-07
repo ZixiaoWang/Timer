@@ -1,4 +1,4 @@
-# Timer
+# Timer 
 A javascript Timer which works well in inactive tab.
 
 ### Why I write this library?
