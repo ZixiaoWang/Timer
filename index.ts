@@ -46,13 +46,17 @@ export interface TimerInfo {
 export class Timer {
     private intervalMap: Map<string, TimerInfo>;
     private timeoutMap: Map<string, TimerInfo>;
+    private immediateSet: Set<number>;
     private worker: Worker;
     private timeError: number;
+    private immediateCount: number;
 
     constructor() {
         this.intervalMap = new Map();
         this.timeoutMap = new Map();
+        this.immediateSet = new Set();
         this.timeError = 0;
+        this.immediateCount = 0;
 
         this.worker = new Worker(
             URL.createObjectURL(
@@ -77,8 +81,10 @@ export class Timer {
         delay?: number,
         ...params: any[]
     ): string{
-        let timeDelay: number = (delay && delay >= 4) ? delay : 4;
-        timeDelay -= this.timeError;
+        let timeDelay: number = delay || 0;
+        if(timeDelay > this.timeError) {
+            timeDelay -= this.timeError;
+        }
         let timeoutID: string = this.$getRandomCode();
         this.timeoutMap.set(timeoutID, {
             fn: functionOrCode,
@@ -95,8 +101,7 @@ export class Timer {
     // var intervalID = scope.setInterval(func, delay[, param1, param2, ...]);
     // var intervalID = scope.setInterval(code, delay);
     setInterval(functionOrCode: Function | string, delay: number, ...params: any[]): string{
-        let timeDelay: number = (delay && delay >= 4) ? delay : 4;
-        timeDelay -= this.timeError;
+        let timeDelay: number = delay || 0;
         let intervalID: string = this.$getRandomCode();
         this.intervalMap.set(intervalID, {
             fn: functionOrCode,
@@ -109,33 +114,82 @@ export class Timer {
         return intervalID;
     }
 
-    clearTimeout(timeoutCode: string) {
-        let interval: TimerInfo = this.intervalMap.get(timeoutCode) as TimerInfo;
+    setImmediate(functionOrCode: Function | string, ...params: any[]): number {
+        if(window['setImmediate']) {
+            let immediateID: number =  window.setImmediate(functionOrCode, ...params);
+            this.immediateSet.add(immediateID);
+            return immediateID;
+        }
+
+        let postMessage = Date.now().toString(16);
+        let scope = this;
+
+        function immediateCallback(event: MessageEvent) {
+            window.removeEventListener('message', immediateCallback);
+            if(event.data === postMessage) {
+                if(typeof functionOrCode === 'function') {
+                    functionOrCode.apply(scope, params);
+                } else {
+                    eval(functionOrCode);
+                }
+            }
+        }
+
+        window.addEventListener(
+            'message',
+            immediateCallback
+        );
+        
+        this.immediateCount ++;
+        window.postMessage(postMessage, '*');
+
+        return this.immediateCount;
+    }
+
+    clearTimeout(timeoutID: string) {
+        let interval: TimerInfo = this.intervalMap.get(timeoutID) as TimerInfo;
         if(interval) {
             this.worker.postMessage('clearInterval:' + interval.timer);
-            this.intervalMap.delete(timeoutCode);
+            this.intervalMap.delete(timeoutID);
         }
     }
 
-    clearInterval(intervalCode: string) {
-        let interval: TimerInfo = this.intervalMap.get(intervalCode) as TimerInfo;
+    clearInterval(intervalID: string) {
+        let interval: TimerInfo = this.intervalMap.get(intervalID) as TimerInfo;
         if(interval) {
             this.worker.postMessage('clearInterval:' + interval.timer);
-            this.intervalMap.delete(intervalCode);
+            this.intervalMap.delete(intervalID);
+        }
+    }
+
+    clearImmediate(immediateID: number) {
+        if(window['clearImmediate']) {
+            clearImmediate(immediateID);
+            this.immediateSet.delete(immediateID);
+            return void 0;
         }
     }
 
     clearAll() {
         this.timeoutMap.forEach((info: TimerInfo, key: string) => {
             this.clearTimeout(key);
-        })
+        });
         this.intervalMap.forEach((info: TimerInfo, key: string) => {
             this.clearInterval(key);
-        })
+        });
+        this.immediateSet.forEach((id: number) => {
+            this.clearImmediate(id);
+        });
     }
 
-    hasTimer(tikcerID: string): boolean {
-        return (this.timeoutMap.has(tikcerID) || this.intervalMap.has(tikcerID));
+    hasTimer(tickerID: string | number): boolean {
+        if(typeof tickerID === 'string') {
+            return (this.timeoutMap.has(tickerID) || this.intervalMap.has(tickerID));
+        } else if(isNaN(tickerID) === false) {
+            return this.immediateSet.has(tickerID);
+        } else {
+            return false;
+        }
     }
 
     private $setWorkerEventListener() {

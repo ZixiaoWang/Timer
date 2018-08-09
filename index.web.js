@@ -1,3 +1,4 @@
+"use strict";
 var WORKER = "\n    self.addEventListener(\n        'message',\n        function(event){\n            var message = event.data.split(':');\n            var cmd = message[0];\n            var ID = message[1];\n            var delay = parseInt(message[2]);\n\n            switch(cmd) {\n                case 'calibrate':\n                    self.postMessage('calibrate:' + ID);\n                    break;\n                case 'createTimeout':\n                    var $timeout = setTimeout(function(){\n                        self.postMessage('timeout:' + ID + ':' + $timeout);\n                    }, delay);\n                    self.postMessage('createTimeout:' + ID + ':' + $timeout);\n                    break;\n                case 'createInterval':\n                    var $interval = setInterval(function(){\n                        self.postMessage('interval:' + ID + ':' + $interval);\n                    }, delay);\n                    self.postMessage('createInterval:' + ID + ':' + $interval);\n                    break;\n                case 'clearTimeout':\n                    clearTimeout(ID);\n                    break;\n                case 'clearInterval':\n                    clearInterval(ID);\n                    break;\n            }\n        },\n        false\n    );\n";
 var Timer = /** @class */ (function () {
     function Timer() {
@@ -198,4 +199,3 @@ var Timer = /** @class */ (function () {
     };
     return Timer;
 }());
-export { Timer };
