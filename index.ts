@@ -35,7 +35,7 @@ const WORKER = `
     );
 `;
 
-export interface TimerInfo {
+interface TimerInfo {
     fn: Function | string;
     delay: number;
     params: any[];
@@ -43,13 +43,14 @@ export interface TimerInfo {
     timer: number;
 }
 
-export class Timer {
-    private intervalMap: Map<string, TimerInfo>;
-    private timeoutMap: Map<string, TimerInfo>;
+class Timer {
+    private intervalMap: Map<number, TimerInfo>;
+    private timeoutMap: Map<number, TimerInfo>;
     private immediateSet: Set<number>;
     private worker: Worker;
     private timeError: number;
     private immediateCount: number;
+    private timerID: number;
 
     constructor() {
         this.intervalMap = new Map();
@@ -57,6 +58,7 @@ export class Timer {
         this.immediateSet = new Set();
         this.timeError = 0;
         this.immediateCount = 0;
+        this.timerID = 0;
 
         this.worker = new Worker(
             URL.createObjectURL(
@@ -72,20 +74,16 @@ export class Timer {
         this.worker.postMessage('calibrate:' + now.toString());
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout
-    // var timeoutID = scope.setTimeout(function[, delay, param1, param2, ...]);
-    // var timeoutID = scope.setTimeout(function[, delay]);
-    // var timeoutID = scope.setTimeout(code[, delay]);
     setTimeout(
         functionOrCode: Function | string,
         delay?: number,
         ...params: any[]
-    ): string{
+    ): number{
         let timeDelay: number = delay || 0;
         if(timeDelay > this.timeError) {
             timeDelay -= this.timeError;
         }
-        let timeoutID: string = this.$getRandomCode();
+        let timeoutID: number = this.$getRandomCode();
         this.timeoutMap.set(timeoutID, {
             fn: functionOrCode,
             delay: timeDelay,
@@ -97,12 +95,9 @@ export class Timer {
         return timeoutID;
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setInterval
-    // var intervalID = scope.setInterval(func, delay[, param1, param2, ...]);
-    // var intervalID = scope.setInterval(code, delay);
-    setInterval(functionOrCode: Function | string, delay: number, ...params: any[]): string{
+    setInterval(functionOrCode: Function | string, delay: number, ...params: any[]): number{
         let timeDelay: number = delay || 0;
-        let intervalID: string = this.$getRandomCode();
+        let intervalID: number = this.$getRandomCode();
         this.intervalMap.set(intervalID, {
             fn: functionOrCode,
             delay: timeDelay,
@@ -146,7 +141,7 @@ export class Timer {
         return this.immediateCount;
     }
 
-    clearTimeout(timeoutID: string) {
+    clearTimeout(timeoutID: number) {
         let interval: TimerInfo = this.intervalMap.get(timeoutID) as TimerInfo;
         if(interval) {
             this.worker.postMessage('clearInterval:' + interval.timer);
@@ -154,7 +149,7 @@ export class Timer {
         }
     }
 
-    clearInterval(intervalID: string) {
+    clearInterval(intervalID: number) {
         let interval: TimerInfo = this.intervalMap.get(intervalID) as TimerInfo;
         if(interval) {
             this.worker.postMessage('clearInterval:' + interval.timer);
@@ -171,10 +166,10 @@ export class Timer {
     }
 
     clearAll() {
-        this.timeoutMap.forEach((info: TimerInfo, key: string) => {
+        this.timeoutMap.forEach((info: TimerInfo, key: number) => {
             this.clearTimeout(key);
         });
-        this.intervalMap.forEach((info: TimerInfo, key: string) => {
+        this.intervalMap.forEach((info: TimerInfo, key: number) => {
             this.clearInterval(key);
         });
         this.immediateSet.forEach((id: number) => {
@@ -182,21 +177,22 @@ export class Timer {
         });
     }
 
-    hasTimer(tickerID: string | number): boolean {
-        if(typeof tickerID === 'string') {
-            return (this.timeoutMap.has(tickerID) || this.intervalMap.has(tickerID));
-        } else if(isNaN(tickerID) === false) {
-            return this.immediateSet.has(tickerID);
-        } else {
-            return false;
-        }
+    hasTimer(timerID: number): boolean {
+        return (this.timeoutMap.has(timerID) || this.intervalMap.has(timerID) || this.immediateSet.has(timerID));
+    }
+
+    release() {
+        this.worker.terminate();
+        this.intervalMap = new Map();
+        this.timeoutMap = new Map();
+        this.immediateSet = new Set();
     }
 
     private $setWorkerEventListener() {
         this.worker.addEventListener("message", event => {
             let response: string[] = event.data.split(':')
             let cmd: string = response[0];
-            let ID: string = response[1];
+            let ID: number = parseInt(response[1]);
             let mark: string = response[2];
 
             switch (cmd) {
@@ -247,7 +243,7 @@ export class Timer {
                 case 'calibrate': 
                     {
                         let recievedTime = Date.now();
-                        let sentTime = parseInt(ID);
+                        let sentTime = ID;
                         this.timeError = recievedTime - sentTime;
                     }
                     break;
@@ -256,7 +252,7 @@ export class Timer {
         });
     }
 
-    private $getRandomCode(): string {
-        return (performance.now() * Math.random() * 1000000000).toString(16).replace('.', '');
+    private $getRandomCode(): number {
+        return ++ this.timerID;
     }
 }

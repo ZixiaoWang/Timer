@@ -7,6 +7,7 @@ var Timer = /** @class */ (function () {
         this.immediateSet = new Set();
         this.timeError = 0;
         this.immediateCount = 0;
+        this.timerID = 0;
         this.worker = new Worker(URL.createObjectURL(new Blob([WORKER], { type: "application/javascript" })));
         this.$setWorkerEventListener();
     }
@@ -14,10 +15,6 @@ var Timer = /** @class */ (function () {
         var now = Date.now();
         this.worker.postMessage('calibrate:' + now.toString());
     };
-    // https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout
-    // var timeoutID = scope.setTimeout(function[, delay, param1, param2, ...]);
-    // var timeoutID = scope.setTimeout(function[, delay]);
-    // var timeoutID = scope.setTimeout(code[, delay]);
     Timer.prototype.setTimeout = function (functionOrCode, delay) {
         var params = [];
         for (var _i = 2; _i < arguments.length; _i++) {
@@ -38,9 +35,6 @@ var Timer = /** @class */ (function () {
         this.worker.postMessage('createTimeout:' + timeoutID + ':' + timeDelay);
         return timeoutID;
     };
-    // https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setInterval
-    // var intervalID = scope.setInterval(func, delay[, param1, param2, ...]);
-    // var intervalID = scope.setInterval(code, delay);
     Timer.prototype.setInterval = function (functionOrCode, delay) {
         var params = [];
         for (var _i = 2; _i < arguments.length; _i++) {
@@ -119,23 +113,21 @@ var Timer = /** @class */ (function () {
             _this.clearImmediate(id);
         });
     };
-    Timer.prototype.hasTimer = function (tickerID) {
-        if (typeof tickerID === 'string') {
-            return (this.timeoutMap.has(tickerID) || this.intervalMap.has(tickerID));
-        }
-        else if (isNaN(tickerID) === false) {
-            return this.immediateSet.has(tickerID);
-        }
-        else {
-            return false;
-        }
+    Timer.prototype.hasTimer = function (timerID) {
+        return (this.timeoutMap.has(timerID) || this.intervalMap.has(timerID) || this.immediateSet.has(timerID));
+    };
+    Timer.prototype.release = function () {
+        this.worker.terminate();
+        this.intervalMap = new Map();
+        this.timeoutMap = new Map();
+        this.immediateSet = new Set();
     };
     Timer.prototype.$setWorkerEventListener = function () {
         var _this = this;
         this.worker.addEventListener("message", function (event) {
             var response = event.data.split(':');
             var cmd = response[0];
-            var ID = response[1];
+            var ID = parseInt(response[1]);
             var mark = response[2];
             switch (cmd) {
                 case 'createTimeout':
@@ -187,7 +179,7 @@ var Timer = /** @class */ (function () {
                 case 'calibrate':
                     {
                         var recievedTime = Date.now();
-                        var sentTime = parseInt(ID);
+                        var sentTime = ID;
                         _this.timeError = recievedTime - sentTime;
                     }
                     break;
@@ -195,7 +187,7 @@ var Timer = /** @class */ (function () {
         });
     };
     Timer.prototype.$getRandomCode = function () {
-        return (performance.now() * Math.random() * 1000000000).toString(16).replace('.', '');
+        return ++this.timerID;
     };
     return Timer;
 }());
