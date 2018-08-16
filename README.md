@@ -34,6 +34,9 @@ I've tried to search if there's any methods to prevent browsers throttling timer
     T.clearAll()
 ```
 
+### TODO
+1. add test cases.
+
 ### Lisence
 MIT License  
 Copyright (c) 2018 Jacky Wang
