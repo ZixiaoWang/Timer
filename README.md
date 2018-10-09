@@ -1,3 +1,5 @@
+Enlish | [中文版](./doc/README.zh.md)
+
 # Timer 
 A javascript Timer which works well in inactive tab.
 
@@ -20,6 +22,9 @@ I've tried to search if there's any methods to prevent browsers throttling timer
 ```javascript
     // Instanize the Timer.
     let T = new Timer();
+
+    // calibrate, reduce the time offset of asynchornaze work.
+    T.calibrate();
 
     // The same API as window.setTimeout/window.setInterval
     T.setTimeout(fn, delay, ...params);
